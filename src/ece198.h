@@ -29,5 +29,25 @@ int ReadKeypad();
 void Initialize7Segment();
 void Display7Segment(int digit);
 
+void Initialize4Digit7Segment();
+void Display4Digit7Segment(int digit);
+void Display4DigitInt7Segment(int num);
+bool InputNumberup(bool *prvup);
+bool InputNumberright(bool *prvRight);
+bool buttonPushed(bool *prvButton);
+
+
+void InitializeBuzzer();
+void playTone(int pitch, int length);
+
+
+
+void InitializeJoystick();
+void ReadJoystick();
+
+void InputNumber();
+
+void InitializeServo();
+
 void InitializeADC(ADC_HandleTypeDef* adc, ADC_TypeDef* whichAdc);
 uint16_t ReadADC(ADC_HandleTypeDef* adc, uint32_t channel);
