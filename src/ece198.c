@@ -122,23 +122,6 @@ void SerialGets(char *buff, int maxlen)
     }
 }
 
-////////////////////
-// Rotary Encoder //
-////////////////////
-
-// read a rotary encoder (handles the quadrature encoding)
-//(uses a previousClk boolean variable provided by the caller)
-
-int ReadEncoder(GPIO_TypeDef *clkport, int clkpin, GPIO_TypeDef *dtport, int dtpin, bool *previousClk)
-{
-    bool clk = HAL_GPIO_ReadPin(clkport, clkpin);
-    bool dt = HAL_GPIO_ReadPin(dtport, dtpin);
-    int result = 0;  // default to zero if encoder hasn't moved
-    if (clk != *previousClk)           // if the clk signal has changed since last time we were called...
-        result = dt != clk ? 1 : -1;   // set the result to the direction (-1 if clk == dt, 1 if they differ)
-    *previousClk = clk;                // store for next time
-    return result;
-}
 
 ////////////////////////////
 // Pulse Width Modulation //
@@ -237,16 +220,46 @@ int ReadKeypad() {
 
 struct { GPIO_TypeDef *port; uint32_t pin; }
 segments[] = {
-    { GPIOA, GPIO_PIN_0 },  // A
-    { GPIOA, GPIO_PIN_1 },  // B
-    { GPIOA, GPIO_PIN_4 },  // C
-    { GPIOB, GPIO_PIN_0 },  // D
-    { GPIOC, GPIO_PIN_1 },  // E
-    { GPIOC, GPIO_PIN_0 },  // F
-    { GPIOB, GPIO_PIN_8 },  // G
-    { GPIOB, GPIO_PIN_9 },  // H (also called DP)
+    { GPIOC, GPIO_PIN_3 },  // A
+    { GPIOC, GPIO_PIN_2 },  // B
+    { GPIOC, GPIO_PIN_10 },  // C
+    { GPIOC, GPIO_PIN_12 },  // D
+    { GPIOA, GPIO_PIN_13 },  // E
+    { GPIOA, GPIO_PIN_14 },  // F
+    { GPIOC, GPIO_PIN_13 },  // G
+    { GPIOB, GPIO_PIN_7 },  // H (also called DP)
 };
-
+/*
+struct {GPIO_TypeDef *port; uint32_t pin;}
+segments4Digit[] = {
+    {GPIOC, GPIO_PIN_9 }, //A
+    {GPIOC, GPIO_PIN_6 }, //B
+    {GPIOC, GPIO_PIN_8}, //C
+    {GPIOB, GPIO_PIN_3 }, //D
+    {GPIOB, GPIO_PIN_5 }, //E
+    {GPIOB, GPIO_PIN_8 }, //F
+    {GPIOB, GPIO_PIN_10}, //G
+    {GPIOA, GPIO_PIN_9 }, //DP
+    {GPIOA, GPIO_PIN_10 }, //D1
+    {GPIOB, GPIO_PIN_0 }, //D2
+    {GPIOC, GPIO_PIN_1 }, //D3
+    {GPIOC, GPIO_PIN_0 }, //D4
+};*/
+struct {GPIO_TypeDef *port; uint32_t pin;}
+segments4Digit[] = {
+    {GPIOA, GPIO_PIN_12 }, //A
+    {GPIOC, GPIO_PIN_9 }, //B
+    {GPIOB, GPIO_PIN_1}, //C
+    {GPIOB, GPIO_PIN_14 }, //D
+    {GPIOB, GPIO_PIN_13 }, //E
+    {GPIOC, GPIO_PIN_5 }, //F
+    {GPIOB, GPIO_PIN_2}, //G
+    {GPIOB, GPIO_PIN_15 }, //DP
+    {GPIOA, GPIO_PIN_11 }, //D1
+    {GPIOC, GPIO_PIN_6 }, //D2
+    {GPIOC, GPIO_PIN_8 }, //D3
+    {GPIOB, GPIO_PIN_12 }, //D4
+};
 // for each digit, we have a byte (uint8_t) which stores which segments are on and off
 // (bits are ABCDEFGH, right to left, so the low-order bit is segment A)
 uint8_t digitmap[10] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7C, 0x07, 0x7F, 0x67 };
@@ -254,6 +267,11 @@ uint8_t digitmap[10] = { 0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7C, 0x07, 0x7F, 0
 void Initialize7Segment() {
     for (int i = 0; i < 8; ++i)
         InitializePin(segments[i].port, segments[i].pin, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, 0);
+}
+
+void Initialize4Digit7Segment() {
+    for(int i = 0; i < 12; ++i)
+        InitializePin(segments4Digit[i].port, segments4Digit[i].pin, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, 0);
 }
 
 void Display7Segment(int digit) {
@@ -265,6 +283,300 @@ void Display7Segment(int digit) {
     for (int i = 0; i < 8; ++i)
         HAL_GPIO_WritePin(segments[i].port, segments[i].pin, (value >> i) & 0x01);  // move bit into bottom position and isolate it
 }
+
+
+// This code is the working function
+/*
+void Display4Digit7Segment(int digit) {
+    int value = 0;
+    //int i = 0;
+    if (digit >= 0 && digit <= 9) {
+       // HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 0);
+       // HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 0);
+
+        value = digitmap[digit]; 
+        for(int i = 0; i < 4; ++i){
+            HAL_GPIO_WritePin(segments4Digit[i+8].port, segments4Digit[i+8].pin, 0);
+            value = ~value;
+            for (int j = 0; j < 8; ++j){
+                HAL_GPIO_WritePin(segments4Digit[j].port, segments4Digit[j].pin, (value >> j) & 0x01);
+            }
+        }
+    }
+}
+*/
+
+void Display4Digit7Segment(int digit) {
+    int value = 0;
+    HAL_Delay(100);
+    //int i = 0;
+    if (digit >= 0 && digit <= 9) {
+       
+        HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 1);
+        HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 1);
+        
+        
+        value = digitmap[digit];             
+        for(int i = 0; i < 4; ++i){                
+            HAL_GPIO_WritePin(segments4Digit[i+8].port, segments4Digit[i+8].pin, 0);                
+            value = ~value;
+            for (int j = 0; j < 8; ++j){
+                HAL_GPIO_WritePin(segments4Digit[j].port, segments4Digit[j].pin, (value >> j) & 0x01);
+            }                
+        }
+    }
+}
+
+
+void Display4DigitInt7Segment(int num) {
+    if (num >= 0 && num <= 9999){
+       
+        int unit = 0;
+        int ten = 0;
+        int hun = 0;
+        int thou = 0;
+       
+        unit = num%10;
+        num = num/10;
+        ten = num%10;
+        num = num/10;
+        hun = num%10;
+        num = num/10;
+        thou = num;
+     /*
+        char buff[100];
+        sprintf()
+
+        
+        SerialPuts("5");
+        SerialPuts("6");
+        SerialPuts("7");
+        SerialPuts("8");
+*/
+        int unitvalue = 0;
+        int tenvalue = 0;
+        int hunvalue = 0;
+        int thouvalue =0;
+        unitvalue = digitmap[unit];
+        tenvalue =digitmap[ten];
+        hunvalue = digitmap[hun];
+        thouvalue = digitmap[thou];
+
+
+        // for(int i = 0; i < 4; i++){
+        //     HAL_GPIO_WritePin(segments4Digit[i+8].port, segments4Digit[i+8].pin, 0);
+        // }
+        //     HAL_Delay(1000);
+           
+            HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 0);
+            HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 1);
+            for(int i = 0; i < 8; ++i){ 
+                HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (unitvalue >> i) & 0x01);
+            } 
+            HAL_Delay(1);
+
+            HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 0);
+            HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 1);
+            for(int i = 0; i < 8; ++i){ 
+                 HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (tenvalue >> i) & 0x01);    
+            }     
+            HAL_Delay(1);
+
+            HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 0);
+            HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 1);
+            for(int i = 0; i < 8; ++i){ 
+                HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (hunvalue >> i) & 0x01);   
+            }    
+            HAL_Delay(1);
+
+            HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 0);
+            for(int i = 0; i < 8; ++i){ 
+                HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (thouvalue >> i) & 0x01);   
+            }       
+            HAL_Delay(1);
+/*
+            HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (unitvalue >> i) & 0x01);
+           // HAL_Delay(1000);
+            HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 0);
+
+            HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (tenvalue >> i) & 0x01);
+           // HAL_Delay(1000);
+            HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 0);
+
+            HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (hunvalue >> i) & 0x01);
+           // HAL_Delay(1000);
+            HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 0);
+
+            HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 1);
+            HAL_GPIO_WritePin(segments4Digit[i].port, segments4Digit[i].pin, (thouvalue >> i) & 0x01);
+           // HAL_Delay(1000);
+            HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 0);
+
+          //  HAL_GPIO_WritePin(segments4Digit[ten].port, segments4Digit[ten].pin, (tenvalue >> ten) & 0x01);
+           // HAL_GPIO_WritePin(segments4Digit[hun].port, segments4Digit[hun].pin, (hunvalue >> hun) & 0x01);
+          //  HAL_GPIO_WritePin(segments4Digit[thou].port, segments4Digit[thou].pin, (thouvalue >> thou) & 0x01);
+           */
+           
+            
+    
+        
+            
+
+
+       // HAL_GPIO_WritePin(segments4Digit[unit].port, segments4Digit[unit].pin, (unitvalue >> unit) & 0x01);
+
+    }
+
+
+
+
+
+
+
+}
+/*
+void Display4Digit7Segment(int digit) {
+    int value = 0;
+    HAL_GPIO_WritePin(segments4Digit[8].port, segments4Digit[8].pin, 1);
+    HAL_GPIO_WritePin(segments4Digit[9].port, segments4Digit[9].pin, 0);
+    HAL_GPIO_WritePin(segments4Digit[10].port, segments4Digit[10].pin, 0);
+    HAL_GPIO_WritePin(segments4Digit[11].port, segments4Digit[11].pin, 0);
+
+    if (digit >= 0 && digit <= 9) {
+        value = digitmap[digit]; 
+            value = value;
+            //for (int j = 0; j < 8; ++j){
+            HAL_GPIO_WritePin(segments4Digit[3].port, segments4Digit[3].pin, (value >> 3) & 0x01);
+       // }
+    }
+}
+*/
+struct {GPIO_TypeDef *port; uint32_t pin;}
+joyPins[] = {
+    {GPIOA, GPIO_PIN_9}, //x direction
+    {GPIOC, GPIO_PIN_7}, //y direction
+    {GPIOA, GPIO_PIN_7}, //clickr switch
+};
+
+
+void InitializeJoystick() {
+    for (int i = 0; i < 3; ++i){
+        InitializePin(joyPins[i].port, joyPins[i].pin, GPIO_MODE_INPUT, GPIO_PULLDOWN, 0);
+    }
+    //printf("ok it worked maybe");
+}
+
+
+
+ bool InputNumberright(bool *prvRight){
+     bool right = 0;
+
+    if (-(HAL_GPIO_ReadPin(joyPins[1].port,joyPins[1].pin)-1) == 1){
+        right = 1;
+    } else {   
+        right = 0;
+    }
+
+
+    if(right != *prvRight && right ==1){
+        *prvRight = right;
+        return 1; 
+    }else{
+        *prvRight = right;
+        return 0; 
+    }              
+
+ }
+
+
+
+
+bool InputNumberup(bool *prvup){
+    bool up = 0;
+
+    if ((-(HAL_GPIO_ReadPin(joyPins[0].port,joyPins[0].pin)-1) == 1)){
+        up = 1;
+    } else {
+        up = 0;
+    }
+
+    if(up != *prvup && up ==1){
+        *prvup = up;
+        return 1; 
+    }else{
+        *prvup = up;
+        return 0; 
+    }              
+}
+
+bool buttonPushed(bool *prvButton){
+    bool button = 0;
+
+    if (HAL_GPIO_ReadPin(joyPins[2].port,joyPins[2].pin) == 1){
+        button = 1;
+    } else {
+        button = 0;
+    }
+
+    if (button != *prvButton && button == 1){
+        *prvButton = button;
+        return 1;
+    } else {
+        *prvButton = button;
+        return 0;
+    }
+}
+
+void InitializeBuzzer() {
+    InitializePin(GPIOB, GPIO_PIN_8, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, 1);
+
+}
+
+void playTone(int pitch, int length) {
+     for (int i = 0; i < length; i++){
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 1);
+            HAL_Delay(pitch);
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, 0);
+            HAL_Delay(pitch);
+        }
+}
+
+void InitializeServo(){
+    InitializePin(GPIOA, GPIO_PIN_10, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, 1);
+}
+
+
+////////////////////
+// Rotary Encoder //
+////////////////////
+
+// read a rotary encoder (handles the quadrature encoding)
+//(uses a previousClk boolean variable provided by the caller)
+
+int ReadEncoder(GPIO_TypeDef *clkport, int clkpin, GPIO_TypeDef *dtport, int dtpin, bool *previousClk)
+{
+    bool clk = HAL_GPIO_ReadPin(clkport, clkpin);
+    bool dt = HAL_GPIO_ReadPin(dtport, dtpin);
+    int result = 0;  // default to zero if encoder hasn't moved
+    if (clk != *previousClk)           // if the clk signal has changed since last time we were called...
+        result = dt != clk ? 1 : -1;   // set the result to the direction (-1 if clk == dt, 1 if they differ)
+    *previousClk = clk;                // store for next time
+    return result;
+}
+
+
 
 /////////
 // ADC //
@@ -304,5 +616,10 @@ uint16_t ReadADC(ADC_HandleTypeDef* adc, uint32_t channel)  // channel might be 
     uint16_t res = HAL_ADC_GetValue(adc);
     HAL_ADC_Stop(adc);
     return res;
+
+
+
+
+
 }
 
