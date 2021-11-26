@@ -74,7 +74,7 @@ int main(void)
     LiquidCrystal(GPIOB, GPIO_PIN_3, GPIO_PIN_0,GPIO_PIN_4, GPIO_PIN_10,GPIO_PIN_6,GPIO_PIN_9,GPIO_PIN_0); // Lcd display
 
     // servo motor 
-    uint16_t period = 9999, prescale = 15; // period and prescale
+    uint16_t period = 2000, prescale = 16; // period and prescale
 
     __TIM2_CLK_ENABLE();  // enable timer 2
     TIM_HandleTypeDef pwmTimerInstance;  // this variable stores an instance of the timer
